@@ -2,6 +2,16 @@
 import sqlite3
 import sys
 from os.path import exists
+from textwrap import TextWrapper
+
+
+# TODO:
+
+# Write helper note to explain random logic
+# Add way to delete bad jam imputs
+# Add option to see full jam list
+# JSON dump
+# JSON to db slurper
 
 
 # --------------------------- INPUT HANDLERS -------------------------- #
@@ -178,45 +188,33 @@ def table_maker(db_name: str,
 # ----------------------------- FORMATTING ---------------------------- #
 
 
-def simple_text_wrap(text_to_wrap: str, wrap_length: int):
+def simple_text_wrap(wrap_length: int, text_to_wrap: str) -> None:
     """
-    Python already has a way to do this, but it requires an
-    import and is assuredly less fun.
-
-    Splits input text at the specified length.
-    Returns a generator expression.
+    pass
     """
-    return (
-        text_to_wrap[:wrap_length]
-        if not line_number
-        else text_to_wrap[line_number * wrap_length:(line_number + 1) * wrap_length]
-        for line_number in range(len(text_to_wrap) // wrap_length + 1)
-    )
+    wrapped_text = TextWrapper(width=wrap_length).wrap(text_to_wrap)
+
+    for line in wrapped_text:
+        print(line)
 
 
-def final_text_display(jam_idea: tuple[int, str, str]) -> str:
+def fancy_text_display(wrap_length: int,
+                       app_name: str,
+                       title: str,
+                       body: str,
+                       pad_char: str = "=") -> None:
     """
     Formats text for display.
     """
-    t = []
-    top_text_border = ("=" * 10, " Code Jam ", "=" * 10, "\n")
-    bottom_text_border = ("=" * 30)
+    top_padding = pad_char * ((wrap_length - len(app_name) - 2) // 2)
+    middle = wrap_length - (len(app_name) * 2 + 10)
 
-    for i in top_text_border:
-        t.append(i)
-
-    t.append("\n")
-    t.append(jam_idea[1].center(28))
-    t.append("\n\n")
-
-    for i in simple_text_wrap(jam_idea[2], 30):
-        t.append(i)
-        t.append("\n")
-
-    t.append(bottom_text_border)
-    t.append("\n")
-
-    return "".join(t)
+    print(top_padding, app_name, top_padding, "\n")
+    print(title.center(wrap_length), "\n")
+    simple_text_wrap(wrap_length, body)
+    print("\n" + pad_char * 3,
+          app_name, pad_char * middle, app_name,
+          pad_char * 3 + "\n")
 
 
 # -------------------------------- MAIN ------------------------------- #
@@ -287,7 +285,7 @@ while True:
 
         if first_roll:
             jam_idea = random_table_row(DB_NAME, UNUSED_IDEAS)
-            print(final_text_display(jam_idea))
+            fancy_text_display(88, "Jamdomizer", jam_idea[1], jam_idea[2])
 
         roll_input = input("\nSelect YES to use this idea, "
                            "NO to re-roll, or QUIT to exit. (Y/N/Q)?")
@@ -303,7 +301,7 @@ while True:
         if no_check(roll_input):
             print("Re-randomizing jam_ideas...\n")
             jam_idea = random_table_row(DB_NAME, UNUSED_IDEAS)
-            print(final_text_display(jam_idea))
+            fancy_text_display(88, "Jamdomizer", jam_idea[1], jam_idea[2])
             first_roll = False
             continue
 
@@ -372,11 +370,8 @@ while True:
                   "Go select and idea and start coding!")
             break
 
-        for pos, idea in enumerate(all_table_rows(DB_NAME, USED_IDEAS)):
-            print("=" * 30)
-            print(f"Jam #{pos + 1}:  {idea[0]}\n")
-            print(*simple_text_wrap(f"Description:  {idea[1]}", 30), sep="\n")
-            print("=" * 30, "\n")
+        for idea in all_table_rows(DB_NAME, USED_IDEAS):
+            fancy_text_display(88, "Jamdomizer", idea[0], idea[1])
 
         old_jam_input = input("Type menu to return or quit to exit.\nYour input: ")
 
