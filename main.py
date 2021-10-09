@@ -1,18 +1,28 @@
 
+import os
 import sqlite3
 import sys
+import tkinter as tk
+from datetime import datetime
 from os.path import exists
+from shutil import copyfile, SameFileError
 from textwrap import TextWrapper
+from tkinter import filedialog
 
 
 # TODO:
 
 # Write helper note to explain random logic
-# Add way to delete bad jam imputs
-# Add option to see full jam list
+# Display Used and Unused Jams are basically the same, combine to reduce code
+# Add way to delete bad jam inputs
 # JSON dump
 # JSON to db slurper
-
+# Clean up function documentation
+# Investigate SQL Uniqueness
+# Consider sub menu for file management options
+# Menu option -- Restore DB from backup -- DONE
+# Menu option -- Create DB backup -- DONE
+# Menu option -- full jam list -- DONE
 
 # --------------------------- INPUT HANDLERS -------------------------- #
 
@@ -72,7 +82,8 @@ def strict_yes_check(user_input: str,
 
     if yes_check(user_input):
         if default_message_on:
-            print(f'Reset command must be entered exactly: "{valid_input}"')
+            for phrase in valid_input:
+                print(f'Reset command must be entered exactly: "{phrase}"')
         return False
 
 
@@ -217,6 +228,53 @@ def fancy_text_display(wrap_length: int,
           pad_char * 3 + "\n")
 
 
+# -------------------------- FILE MANAGEMENT -------------------------- #
+
+
+def file_backup(file_name: str, dst_folder_name: str) -> bool:
+    """
+    Backup your file to the specified folder name
+    in the current working directory.
+    """
+    timestamp = (datetime.now().strftime("%b-%d-%y_%H%M%S").upper())
+    cwd = os.getcwd()
+    os.makedirs(f"{cwd}/{dst_folder_name}/", exist_ok=True)
+    src = f"{cwd}/{file_name}"
+    dst = f"{cwd}/{dst_folder_name}/{timestamp}_{file_name}"
+
+    try:
+        copyfile(src, dst)
+        return True
+    except FileNotFoundError:
+        print(f'ERROR: Operation could not be completed '
+              f'because "{file_name}" does not exist!')
+        return False
+
+
+def restore_db_from_backup(file_name: str) -> bool:
+    """
+    pass
+    """
+    tk.Tk().withdraw()
+    cwd = os.getcwd()
+    file = filedialog.askopenfilename(initialdir=cwd, filetypes=[
+        ("SQLite Database files", ".db"),
+        ("SQLite Database files", ".sqlite"),
+        ("SQLite Database files", ".sqlite3"),
+        ("SQLite Database files", ".db3"),
+    ])
+    try:
+        copyfile(file, f"{cwd}/{file_name}")
+        return True
+    except FileNotFoundError:
+        print("ERROR: Operation could not be completed because the "
+              "file does not exist or a file was not selected!")
+        return False
+    except SameFileError:
+        print("You can not restore a backup from the current active file.")
+        return False
+
+
 # -------------------------------- MAIN ------------------------------- #
 
 
@@ -235,10 +293,10 @@ Y8   I8I   88 88~~~~~ 88      8b      88    88 88  88  88 88~~~~~        88    8
     88  88~~~88 88  88  88 88   88 88    88 88  88  88    88      d8'   88~~~~~ 88`8b
 db. 88  88   88 88  88  88 88  .8D `8b  d8' 88  88  88   .88.    d8' db 88.     88 `88.
 Y8888P  YP   YP YP  YP  YP Y8888D'  `Y88P'  YP  YP  YP Y888888P d88888P Y88888P 88   YD
-......::..:::..:..::..::..:.......::......::..::..::..:........:.......:.......:..:::..
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-=======================================================================================
+......::..:::..:..::..::..:.......::......::..::..::..:........:.......:.......:..:::..:
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+========================================================================================
 """
 
 DB_NAME = "codejam.db"
@@ -253,11 +311,14 @@ INVALID_INPUT = "Invalid input, try again."
 
 MENU_MESSAGE = """
     Menu
-    1. Randomly select a new jam from the dataset
+    1. Randomly select a new jam from the data set
     2. Add new jams to your list
-    3. See the used jams
-    4. Reset your data completely. (Requires Conformation)
-    5. Quit
+    3. List all upcoming used jams
+    4. List all completed jams
+    5. Back up all jam data
+    6. Restore jam data from backup. (Requires Conformation)
+    7. Reset your data completely. (Requires Conformation)
+    8. Quit
     """
 print(welcome_message)
 print("""
@@ -309,8 +370,8 @@ while True:
             print(MENU_MESSAGE)
             break
 
-        if quit_check(roll_input, ["quit", "q"]):
-            print("\nNo jam selected. Shutting down.\n")
+        if quit_check(roll_input, ["quit", "q"], False):
+            print("\nNo jam selected. Shutting down...\n")
             sys.exit()
 
         else:
@@ -361,7 +422,32 @@ while True:
         if quit_check(continue_input):
             sys.exit()
 
-    while menu_input == "3":                            # See past jams
+    while menu_input == "3":                            # List upcoming jams
+
+        print("Showing all unselected jam ideas...\n")
+
+        if empty_table(DB_NAME, UNUSED_IDEAS):
+            print("There doesn't seem to be anything here. "
+                  "Go to the menu and add some jams to get started!")
+            break
+
+        for idea in all_table_rows(DB_NAME, UNUSED_IDEAS):
+            fancy_text_display(88, "Jamdomizer", idea[0], idea[1])
+
+        upcoming_jam_input = input("Type menu to return or quit to exit."
+                                   "\nYour input: ")
+
+        if menu_check(upcoming_jam_input):
+            print(MENU_MESSAGE)
+            break
+
+        if quit_check(upcoming_jam_input):
+            sys.exit()
+
+        else:
+            print(INVALID_INPUT)
+
+    while menu_input == "4":                            # List past jams
 
         print("Showing all previously selected jam ideas...\n")
 
@@ -385,7 +471,44 @@ while True:
         else:
             print(INVALID_INPUT)
 
-    while menu_input == "4":                            # Reset everything
+    while menu_input == "5":                            # Backup the DB
+
+        if file_backup(DB_NAME, "db_backup"):
+            print("File back up successful! "
+                  "Returning to the main menu...")
+            print(MENU_MESSAGE)
+            break
+
+        else:
+            print("\nReturning to the main menu...")
+            break
+
+    while menu_input == "6":                            # Restore from backup
+        restore_input = input("\nSelecting a file will overwrite your current one.\n"
+                              "This could potentially result in a loss of data.\n"
+                              "It is recommended to back up your current file before proceeding.\n"
+                              'Type "YES" to continue, menu to return, or quit to exit.\n\n'
+                              'Your Input: ')
+
+        if strict_yes_check(restore_input, default_message_on=False):
+            if restore_db_from_backup(DB_NAME):
+                print("File restoration successful! "
+                      "Returning to the main menu...")
+                print(MENU_MESSAGE)
+                break
+
+        if no_check(restore_input) or menu_check(restore_input):
+            print(MENU_MESSAGE)
+            break
+
+        if quit_check(restore_input):
+            sys.exit()
+
+        else:
+            if not yes_check(restore_input):
+                print(INVALID_INPUT)
+
+    while menu_input == "7":                            # Reset everything
 
         reset_input = input("\nThis will completely reset ALL of your data. "
                             "Are you sure? (YES/NO)")
@@ -406,8 +529,10 @@ while True:
             if not yes_check(reset_input):
                 print(INVALID_INPUT)
 
-    if quit_check(menu_input, ["5", "quit", "exit"]):   # Terminate app
+    if quit_check(menu_input, ["8", "quit", "exit", "q"]):   # Terminate app
         sys.exit()
 
-    if menu_input.lower() not in ["1", "2", "3", "4", "5", "quit", "exit"]:
+    if menu_input.lower() not in ["1", "2", "3", "4",
+                                  "5", "6", "7", "8",
+                                  "quit", "exit"]:
         print(INVALID_INPUT)
