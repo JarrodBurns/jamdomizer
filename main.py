@@ -1,4 +1,5 @@
 
+import json
 import os
 import sqlite3
 import sys
@@ -15,14 +16,15 @@ from tkinter import filedialog
 # Write helper note to explain random logic
 # Display Used and Unused Jams are basically the same, combine to reduce code
 # Add way to delete bad jam inputs
-# JSON dump
-# JSON to db slurper
 # Clean up function documentation
-# Investigate SQL Uniqueness
+# Standardize all messages/spacing
 # Consider sub menu for file management options
-# Menu option -- Restore DB from backup -- DONE
-# Menu option -- Create DB backup -- DONE
-# Menu option -- full jam list -- DONE
+# JSON dump -- DONE
+# JSON to db slurper -- DONE
+# Investigate SQL Uniqueness -- DONE
+
+# Revision 1.4.0
+
 
 # --------------------------- INPUT HANDLERS -------------------------- #
 
@@ -132,7 +134,7 @@ def all_table_rows(db_name: str, table_name: str) -> list[tuple[str, ...], ...]:
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM USED_JAM_IDEAS")
+    cursor.execute("SELECT * FROM {}".format(table_name))
     all_rows = cursor.fetchall()
     conn.close()
     return all_rows
@@ -271,8 +273,41 @@ def restore_db_from_backup(file_name: str) -> bool:
               "file does not exist or a file was not selected!")
         return False
     except SameFileError:
-        print("You can not restore a backup from the current active file.")
+        print("You can not restore a backup from the current active file.\n"
+              'By default back ups are stored in the folder "db_backup"')
+
         return False
+
+
+def dump_to_json(data_to_write: list[tuple[str, str], ...],
+                 json_file_name: str,
+                 default_message_on: bool = True) -> None:
+    """
+    pass
+    """
+    json_data = {name: desc for name, desc in data_to_write}
+    with open(json_file_name, "w") as file_handle:
+        json.dump(json_data, file_handle, indent=2)
+
+    if default_message_on:
+        print(f"SUCCESS: {len(json_data)} object(s) written to {json_file_name}!")
+
+
+def read_from_json() -> dict[str, str, ...] or None:
+    """
+    pass
+    """
+    tk.Tk().withdraw()
+    cwd = os.getcwd()
+    file = filedialog.askopenfilename(initialdir=cwd, filetypes=[
+        ("JSON Files", ".json")
+    ])
+    try:
+        with open(file, "r") as file_handle:
+            return json.load(file_handle)
+    except FileNotFoundError:
+        print("ERROR: Operation could not be completed "
+              "because no file was selected.")
 
 
 # -------------------------------- MAIN ------------------------------- #
@@ -301,6 +336,7 @@ Y8888P  YP   YP YP  YP  YP Y8888D'  `Y88P'  YP  YP  YP Y888888P d88888P Y88888P 
 
 DB_NAME = "codejam.db"
 TABLE_NAMES = ["UNUSED_JAM_IDEAS", "USED_JAM_IDEAS"]
+JSON_FILE_NAME = "data.json"
 ERROR_INVALID_NAME = "ERROR: You must enter at least one character."
 ERROR_SQL_UNIQUE = "ERROR: All name entries must be unique."
 SQL_SUCCESS = "Record created successfully!"
@@ -316,9 +352,10 @@ MENU_MESSAGE = """
     3. List all upcoming used jams
     4. List all completed jams
     5. Back up all jam data
-    6. Restore jam data from backup. (Requires Conformation)
-    7. Reset your data completely. (Requires Conformation)
-    8. Quit
+    6. Restore jam data from backup (Requires Conformation)
+    7. Reset your data completely (Requires Conformation)
+    8. Import/Export JSON data
+    9. Quit
     """
 print(welcome_message)
 print("""
@@ -329,7 +366,6 @@ print(MENU_MESSAGE)
 
 if not exists(DB_NAME):
     table_maker(DB_NAME, TABLE_NAMES, False)
-
 
 while True:
 
@@ -403,7 +439,6 @@ while True:
             sys.exit()
 
         try:
-            # Name row doesn't seem to care about uniquness anymore, check this.
             sql_insert(DB_NAME, UNUSED_IDEAS, user_jam_name, user_jam_description)
             print(SQL_SUCCESS)
 
@@ -484,11 +519,14 @@ while True:
             break
 
     while menu_input == "6":                            # Restore from backup
-        restore_input = input("\nSelecting a file will overwrite your current one.\n"
-                              "This could potentially result in a loss of data.\n"
-                              "It is recommended to back up your current file before proceeding.\n"
-                              'Type "YES" to continue, menu to return, or quit to exit.\n\n'
-                              'Your Input: ')
+
+        restore_input = input(
+            "\nSelecting a file will overwrite your current one.\n"
+            "This could potentially result in a loss of data.\n"
+            "It is recommended to back up your current file before proceeding.\n"
+            'Type "YES" to continue, menu to return, or quit to exit.\n\n'
+            'Your Input: '
+        )
 
         if strict_yes_check(restore_input, default_message_on=False):
             if restore_db_from_backup(DB_NAME):
@@ -529,10 +567,67 @@ while True:
             if not yes_check(reset_input):
                 print(INVALID_INPUT)
 
-    if quit_check(menu_input, ["8", "quit", "exit", "q"]):   # Terminate app
+    while menu_input == "8":                        # JSON I/O
+
+        json_input = input(
+            "\nSelect your destination by typing the "
+            "appropriate number and pressing enter.\n\n"
+            "    1. Export your database file to JSON format. "
+            f'(File will be saved in:\n       {os.getcwd()} as "{JSON_FILE_NAME}")\n\n'
+            "    2. Import a JSON file into the database."
+            " (Expected format is:\n       {name: description, ...})\n\n"
+            'You may type "menu" to return or "quit" to exit the application.\n\n'
+            "Your Input: "
+        )
+
+        if json_input == "1":                       # JSON Out
+
+            if empty_table(DB_NAME, UNUSED_IDEAS):
+                print("\nYou don't have any data to export yet. "
+                      "Go add some jams to your list first!\n"
+                      "Returning to the main menu...")
+
+                print(MENU_MESSAGE)
+                break
+
+            table_to_json = all_table_rows(DB_NAME, UNUSED_IDEAS)
+            dump_to_json(table_to_json, JSON_FILE_NAME)
+            print("\nReturning to the main menu...")
+            print(MENU_MESSAGE)
+            break
+
+        if json_input == "2":                       # JSON In
+
+            json_data = read_from_json()
+
+            if json_data:
+                for count, (k, v) in enumerate(json_data.items()):
+                    try:
+                        sql_insert(DB_NAME, UNUSED_IDEAS, k, v)
+                        print(f"SUCCESS: Line #{count + 1} of {len(json_data)} "
+                              "written to database!")
+
+                    except sqlite3.IntegrityError:
+                        print(f'ERROR: Line #{count + 1} of {len(json_data)}, '
+                              f'NAME: "{k}", already exists in the database.'
+                              '\n       (Only unique information may be saved.)')
+                print(MENU_MESSAGE)
+                break
+
+        if menu_check(json_input):
+            print(MENU_MESSAGE)
+            break
+
+        if quit_check(json_input):
+            sys.exit()
+
+        else:
+            print(INVALID_INPUT)
+
+    if quit_check(menu_input, ["9", "quit", "exit", "q"]):   # Terminate app
         sys.exit()
 
-    if menu_input.lower() not in ["1", "2", "3", "4",
-                                  "5", "6", "7", "8",
-                                  "quit", "exit"]:
+    if menu_input.lower() not in ["1", "2", "3", "4", "5",
+                                  "6", "7", "8", "9",
+                                  "quit", "q", "exit"]:
         print(INVALID_INPUT)
