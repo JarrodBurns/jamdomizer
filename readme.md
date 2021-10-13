@@ -1,5 +1,5 @@
 # Jamdomizer
-At it's heart Jamdomizer is a random choice app built on user supplied data. As far as the source code is concerned the "Jam" part is reasonably decoupled from allowing for an easy piviot to a different theme; e.g. a resturant picker. 
+At it's heart Jamdomizer is a random choice app built on user supplied data. As far as the source code is concerned the "Jam" part is reasonably decoupled from allowing for an easy pivot to a different theme; e.g. a restaurant picker. 
 
 ![menu](https://user-images.githubusercontent.com/87616660/137225606-79f3e92a-8d6c-4846-9448-6e85cdb45167.png)
 
