@@ -32,14 +32,20 @@ class FileManager:
 
     def restore_db(save_file_as: str) -> bool:
 
-        tk.Tk().withdraw()
+        window = tk.Tk()
+        window.attributes("-topmost", True)     # Always on top for Windows
+        window.lift()                           # Always on top for Linux/Mac
+        window.withdraw()
         cwd = os.getcwd()
-        file = filedialog.askopenfilename(initialdir=cwd, filetypes=[
-            ("SQLite Database files", ".db"),
-            ("SQLite Database files", ".sqlite"),
-            ("SQLite Database files", ".sqlite3"),
-            ("SQLite Database files", ".db3"),
-        ])
+        file = filedialog.askopenfilename(
+            initialdir=cwd,
+            title="Select a File",
+            filetypes=[
+                ("SQLite Database files", ".db"),
+                ("SQLite Database files", ".sqlite"),
+                ("SQLite Database files", ".sqlite3"),
+                ("SQLite Database files", ".db3"),
+            ])
         try:
             shutil.copyfile(file, f"{cwd}/{save_file_as}")
             print("Restoration from back up executed successfully.")
@@ -67,11 +73,17 @@ class FileManager:
 
     def load_json() -> dict[str, str, ...] or None:
 
-        tk.Tk().withdraw()
+        window = tk.Tk()
+        window.attributes("-topmost", True)     # Always on top for Windows
+        window.lift()                           # Always on top for Linux/Mac
+        window.withdraw()
         cwd = os.getcwd()
-        file = tk.filedialog.askopenfilename(initialdir=cwd, filetypes=[
-            ("JSON Files", ".json")
-        ])
+        file = tk.filedialog.askopenfilename(
+            initialdir=cwd,
+            title="Select a File",
+            filetypes=[
+                ("JSON Files", ".json")
+            ])
         try:
             with open(file, "r") as file_handle:
                 return json.load(file_handle)
