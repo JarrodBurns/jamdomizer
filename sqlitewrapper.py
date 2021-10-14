@@ -1,11 +1,16 @@
 
+"""
+Table names are scrubbed for every input. This is likely overkill however, I
+would like the leave the option open for the user to name tables.
+"""
+
+
 import sqlite3
 
 
 class SQLiteWrapper:
     """
     Connections are opened and closed per transaction.
-    Table names are scrubbed for every input. This is likely overkill.
     """
 
     def __init__(self, db_name):

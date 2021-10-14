@@ -1,6 +1,5 @@
 
 import os
-import sqlite3
 import sys
 
 from filemanager import FileManager
@@ -10,8 +9,8 @@ from sqlitewrapper import SQLiteWrapper
 
 
 #================================================================#
-# Jamdomizer (tm) Jarrod Burns | ta747839@gmail.com | 10/12/2021 #
-# Revision 2.0.0 - Update before commit                          #
+# Jamdomizer (tm) Jarrod Burns | ta747839@gmail.com | 10/14/2021 #
+# Revision 2.0.1 - Update before commit                          #
 #================================================================#
 
 
@@ -48,12 +47,13 @@ ERROR_INVALID_NAME = "ERROR: You must enter at least one character."
 QUIT_MESSAGE = "Shutting down."
 INVALID_INPUT = "Invalid input, try again."
 MENU_OR_QUIT = 'Type "menu" to return or "quit" to exit.\nYour input: '
+MENU_RETURN_MSG = "Returning to the main menu...\n"
 
-MENU_MESSAGE = """
+MENU_MSG = """
     Menu
     1. Randomly select a new jam from the data set
     2. Add new jams to your list
-    3. List all upcoming used jams
+    3. List all upcoming jams
     4. List all completed jams
     5. Back up all jam data
     6. Restore jam data from backup (Requires Conformation)
@@ -66,7 +66,7 @@ print("""
 Select your destination by typing the appropriate number and pressing enter.
 Return to this menu at any time by typing "menu"
 Quit this application at any time by typing "quit" """)
-print(MENU_MESSAGE)
+print(MENU_MSG)
 
 if not os.path.exists(DB_NAME):
     SQLiteWrapper(DB_NAME).create_table(UNUSED_IDEAS, False)
@@ -95,27 +95,20 @@ while True:
                            "Your input: ")
 
         if InputHandler.yes(roll_input):
-            try:
-                SQLiteWrapper(DB_NAME).insert_row(USED_IDEAS, (jam_idea[1], jam_idea[2]))
-            except sqlite3.IntegrityError:
-                print("ERROR: Jam was not recorded to history. "
-                      "       An entry with the same name already exists.")
-
+            SQLiteWrapper(DB_NAME).insert_row(USED_IDEAS, (jam_idea[1], jam_idea[2]))
             SQLiteWrapper(DB_NAME).delete_row_byid(UNUSED_IDEAS, str(jam_idea[0]))
-
-            print("Selection approved. Returning to main menu...")
-            print(MENU_MESSAGE)
+            print(MENU_RETURN_MSG, MENU_MSG)
             break
 
         if InputHandler.no(roll_input):
-            print("Randomizing jam_ideas...")
+            print("Randomizing jam ideas...")
             jam_idea = SQLiteWrapper(DB_NAME).random_row(UNUSED_IDEAS)
             Formatting.display(88, "Jamdomizer", jam_idea[1], jam_idea[2])
             first_roll = False
             continue
 
         if InputHandler.menu(roll_input):
-            print(MENU_MESSAGE)
+            print(MENU_MSG)
             break
 
         if InputHandler.quit(roll_input, ["quit", "q"], False):
@@ -132,7 +125,7 @@ while True:
             user_jam_name = input("\nEnter the name of your Jam idea: ")
 
         if InputHandler.menu(user_jam_name):
-            print(MENU_MESSAGE)
+            print(MENU_MSG)
             break
 
         if InputHandler.quit(user_jam_name):
@@ -146,7 +139,7 @@ while True:
             user_jam_description = input("Enter a description for your idea: ")
 
         if InputHandler.menu(user_jam_description):
-            print(MENU_MESSAGE)
+            print(MENU_MSG)
             break
 
         if InputHandler.quit(user_jam_description):
@@ -168,8 +161,7 @@ while True:
             continue
 
         if InputHandler.no(continue_input) or InputHandler.menu(continue_input):
-            print("Returning to main menu...")
-            print(MENU_MESSAGE)
+            print(MENU_RETURN_MSG, MENU_MSG)
             break
 
         if InputHandler.quit(continue_input):
@@ -196,7 +188,7 @@ while True:
         upcoming_jam_input = input(MENU_OR_QUIT)
 
         if InputHandler.menu(upcoming_jam_input):
-            print(MENU_MESSAGE)
+            print(MENU_MSG)
             break
 
         if InputHandler.quit(upcoming_jam_input):
@@ -223,7 +215,7 @@ while True:
         old_jam_input = input(MENU_OR_QUIT)
 
         if InputHandler.menu(old_jam_input):
-            print(MENU_MESSAGE)
+            print(MENU_MSG)
             break
 
         if InputHandler.quit(old_jam_input):
@@ -235,15 +227,13 @@ while True:
     while menu_input == "5":                            # Backup the DB
 
         if FileManager.backup_db(DB_NAME, "db_backup"):
-            print(f'File back up of "{DB_NAME}" executed successfully. '
-                  'Returning to the main menu...')
-            print(MENU_MESSAGE)
+            print(MENU_RETURN_MSG, MENU_MSG)
             break
 
         else:
             # Error message printing is thrown by backup_db so in the else case
             # this logic will return the user back to the main menu.
-            print("\nReturning to the main menu...")
+            print(MENU_RETURN_MSG, MENU_MSG)
             break
 
     while menu_input == "6":                            # Restore from backup
@@ -258,13 +248,11 @@ while True:
 
         if InputHandler.strict_yes(restore_input):
             if FileManager.restore_db(DB_NAME):
-                print("File restoration executed successfully. "
-                      "Returning to the main menu...")
-                print(MENU_MESSAGE)
+                print(MENU_RETURN_MSG, MENU_MSG)
                 break
 
         if InputHandler.no(restore_input) or InputHandler.menu(restore_input):
-            print(MENU_MESSAGE)
+            print(MENU_MSG)
             break
 
         if InputHandler.quit(restore_input):
@@ -284,12 +272,12 @@ while True:
             SQLiteWrapper(DB_NAME).drop_table(USED_IDEAS)
             SQLiteWrapper(DB_NAME).create_table(UNUSED_IDEAS)
             SQLiteWrapper(DB_NAME).create_table(USED_IDEAS)
-            print(MENU_MESSAGE)
+            print(MENU_MSG)
             break
 
         if InputHandler.no(reset_input) or InputHandler.menu(reset_input):
-            print("\nNo action taken. Returning to the main menu...")
-            print(MENU_MESSAGE)
+            print("\nNo action taken.")
+            print(MENU_RETURN_MSG, MENU_MSG)
             break
 
         if InputHandler.quit(reset_input):
@@ -316,16 +304,14 @@ while True:
 
             if SQLiteWrapper(DB_NAME).empty_table(UNUSED_IDEAS):
                 print("\nYou don't have any data to export yet. "
-                      "Go add some jams to your list first!\n"
-                      "Returning to the main menu...")
+                      "Go add some jams to your list first!\n")
 
-                print(MENU_MESSAGE)
+                print(MENU_RETURN_MSG, MENU_MSG)
                 break
 
             table_to_json = SQLiteWrapper(DB_NAME).all_table_rows(UNUSED_IDEAS)
             FileManager.dump_json(table_to_json, JSON_FILE_NAME)
-            print("\nReturning to the main menu...")
-            print(MENU_MESSAGE)
+            print(MENU_RETURN_MSG, MENU_MSG)
             break
 
         if json_input == "2":                       # JSON In
@@ -337,11 +323,11 @@ while True:
                     print(f"\n------ Operation {count + 1} of {len(json_data)}:\n")
                     SQLiteWrapper(DB_NAME).insert_row(UNUSED_IDEAS, (k, v))
 
-                print(MENU_MESSAGE)
+                print(MENU_MSG)
                 break
 
         if InputHandler.menu(json_input):
-            print(MENU_MESSAGE)
+            print(MENU_MSG)
             break
 
         if InputHandler.quit(json_input):

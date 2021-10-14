@@ -17,13 +17,13 @@ class FileManager:
         """
         timestamp = (datetime.now().strftime("%b-%d-%y_%H%M%S").upper())
         cwd = os.getcwd()
-        os.makedirs(f"{cwd}/{dst_folder_name}/", exist_ok=True)
-        src = f"{cwd}/{file_to_backup}"
-        dst = f"{cwd}/{dst_folder_name}/{timestamp}_{file_to_backup}"
+        os.makedirs(f"{cwd}\\{dst_folder_name}\\", exist_ok=True)
+        src = f"{cwd}\\{file_to_backup}"
+        dst = f"{cwd}\\{dst_folder_name}\\{timestamp}_{file_to_backup}"
 
         try:
             shutil.copyfile(src, dst)
-            print(f'File: "{file_to_backup}" created successfully.')
+            print(f'Database back up created successfully. Your file is saved in:\n{dst}')
             return True
         except FileNotFoundError:
             print(f'ERROR: Operation could not be completed.\n'
