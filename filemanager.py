@@ -55,7 +55,7 @@ class FileManager:
                   "       File does not exist or was not selected.")
             return False
         except shutil.SameFileError:
-            print("ERROR: File in use by this application.\n"
+            print("ERROR: Selected file is in use by this application.\n"
                   '       By default back ups are stored in the folder "db_backup"')
             return False
 

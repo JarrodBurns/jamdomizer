@@ -9,8 +9,8 @@ from sqlitewrapper import SQLiteWrapper
 
 
 #================================================================#
-# Jamdomizer (tm) Jarrod Burns | ta747839@gmail.com | 10/14/2021 #
-# Revision 2.0.1 - Update before commit                          #
+# Jamdomizer (tm) Jarrod Burns | ta747839@gmail.com | 10/15/2021 #
+# Revision 2.0.2 - Update before commit                          #
 #================================================================#
 
 
@@ -90,13 +90,13 @@ while True:
 
             first_roll = False
 
-        roll_input = input('\nType "YES" to use this idea, '
+        roll_input = input('Type "YES" to use this idea, '
                            'NO to re-roll, or "menu" to return.\n'
                            "Your input: ")
 
         if InputHandler.yes(roll_input):
             SQLiteWrapper(DB_NAME).insert_row(USED_IDEAS, (jam_idea[1], jam_idea[2]))
-            SQLiteWrapper(DB_NAME).delete_row_byid(UNUSED_IDEAS, str(jam_idea[0]))
+            SQLiteWrapper(DB_NAME).delete_row_byid(UNUSED_IDEAS, jam_idea[0])
             print(MENU_RETURN_MSG, MENU_MSG)
             break
 
@@ -180,8 +180,13 @@ while True:
         if first_roll:
             print("Showing all unselected jam ideas...")
 
-            for idea in SQLiteWrapper(DB_NAME).all_table_rows(UNUSED_IDEAS):
+            all_unused_rows = SQLiteWrapper(DB_NAME).all_table_rows(UNUSED_IDEAS)
+
+            for idea in all_unused_rows:
                 Formatting.display(88, "Jamdomizer", idea[0], idea[1])
+                if idea is not all_unused_rows[-1]:
+                    print("\\" * 44 + "/" * 44)
+                    print("/" * 44 + "\\" * 44)
 
             first_roll = False
 
@@ -207,8 +212,13 @@ while True:
         if first_roll:
             print("Showing all previously selected jam ideas...\n")
 
-            for idea in SQLiteWrapper(DB_NAME).all_table_rows(USED_IDEAS):
+            all_used_rows = SQLiteWrapper(DB_NAME).all_table_rows(USED_IDEAS)
+
+            for idea in all_used_rows:
                 Formatting.display(88, "Jamdomizer", idea[0], idea[1])
+                if idea is not all_used_rows[-1]:
+                    print("\\" * 44 + "/" * 44)
+                    print("/" * 44 + "\\" * 44)
 
             first_roll = False
 
